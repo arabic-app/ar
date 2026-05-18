@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- LA SOLUTION MAGIQUE EST ICI : On empêche le navigateur d'envoyer l'URL de GitHub à Google -->
+    <meta name="referrer" content="no-referrer">
+    
     <title>Apprendre les lettres arabes</title>
     <link id="manifestLink" rel="manifest" href="">
     <meta name="theme-color" content="#1a73e8">
-    <!-- Pour améliorer la compatibilité iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="ArabeApp">
@@ -191,6 +193,9 @@
 </head>
 <body>
 
+    <!-- Lecteur audio caché essentiel pour la compatibilité iOS / Safari -->
+    <audio id="mainAudioPlayer" style="display: none;"></audio>
+
     <div class="container">
         <div class="top-bar">
             <div class="lang-switcher">
@@ -255,7 +260,6 @@
         </div>
     </div>
 
-    <!-- Modal spécifique d'installation pour iOS -->
     <div class="modal-overlay" id="iosModal" onclick="closeModalOnOutsideClick(event, 'iosModal')">
         <div class="modal-card" onclick="event.stopPropagation()">
             <div class="modal-title" id="iosModalTitle">Installer sur iOS</div>
@@ -273,7 +277,6 @@
 
     <script>
         function setupPWA() {
-            // 1. Génération dynamique du Manifest
             const manifest = {
                 "name": "Apprendre l'Arabe", "short_name": "ArabeApp",
                 "start_url": ".", "display": "standalone",
@@ -286,28 +289,22 @@
             const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
             document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(manifestBlob));
 
-            // 2. Génération du Service Worker
             const swCode = `self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('fetch', (e) => {});`;
             const swBlob = new Blob([swCode], {type: 'application/javascript'});
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW error', err));
             }
 
-            // 3. Logique d'installation (Détection iOS vs Android/PC)
             const installBtn = document.getElementById('installBtn');
-            
-            // Détection plus robuste d'iOS (incluant les iPads récents)
             const isIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
             const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
 
             if (isIOS && !isStandalone) {
-                // Si on est sur iOS et non installé, on affiche le bouton et on ouvre le popup dédié
                 installBtn.style.display = 'block';
                 installBtn.addEventListener('click', () => {
                     document.getElementById('iosModal').style.display = 'flex';
                 });
             } else {
-                // Comportement standard pour Android/PC
                 let deferredPrompt;
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
@@ -496,7 +493,6 @@
             document.getElementById('btnApply').innerText = t.btn_apply;
             document.getElementById('installBtn').innerText = "📲 " + t.install;
             
-            // Textes spécifiques à iOS
             document.getElementById('iosModalTitle').innerText = t.ios_title;
             document.getElementById('iosStep1').innerHTML = t.ios_step1;
             document.getElementById('iosStep2').innerHTML = t.ios_step2;
@@ -601,11 +597,15 @@
             currentAudioClean = audioText; 
         }
 
+        // --- Mise à jour de la fonction audio pour iOS ---
         function playAudio() {
             if (!currentAudioClean) return;
             const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${encodeURIComponent(currentAudioClean)}`;
-            const audio = new Audio(googleTtsUrl);
-            audio.play().catch(e => console.error("Erreur audio:", e));
+            
+            // Utilisation d'un lecteur audio physique caché (meilleur pour iOS)
+            const audioPlayer = document.getElementById('mainAudioPlayer');
+            audioPlayer.src = googleTtsUrl;
+            audioPlayer.play().catch(e => console.error("Erreur audio:", e));
         }
 
         function buildHelpContent() {
