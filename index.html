@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apprendre les lettres arabes</title>
+    <link id="manifestLink" rel="manifest" href="">
+    <meta name="theme-color" content="#1a73e8">
+    <!-- Pour améliorer la compatibilité iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ArabeApp">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Noto+Sans+Arabic:wght@500;700&family=Roboto:wght@400;500;700&family=Tajawal:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --md-sys-color-background: #f7f9fc;
+            --md-sys-color-surface: #ffffff;
+            --md-sys-color-primary: #1a73e8;
+            --md-sys-color-primary-container: #e8f0fe;
+            --md-sys-color-on-primary-container: #174ea6;
+            --md-sys-color-secondary: #34a853;
+            --md-sys-color-outline: #dadce0;
+            --md-sys-color-on-surface: #202124;
+            --md-sys-color-on-surface-variant: #5f6368;
+            --md-sys-color-error-container: #fce8e6;
+            --md-sys-color-on-error-container: #c5221f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Roboto', 'Tajawal', sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            background-color: var(--md-sys-color-surface);
+            padding: clamp(16px, 5vw, 40px);
+            border-radius: 28px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .lang-switcher { display: flex; gap: 6px; flex: 1; }
+
+        .lang-btn, .mode-btn {
+            font-family: inherit; font-size: 13px; font-weight: 500;
+            padding: 8px 12px; border: 1px solid var(--md-sys-color-outline);
+            background-color: transparent; color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lang-btn { border-radius: 100px; flex: 1; }
+        .lang-btn.active, .mode-btn.active {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .right-actions { display: flex; gap: 8px; }
+
+        .icon-btn {
+            background-color: #f1f3f4; border: none; height: 38px;
+            border-radius: 100px; cursor: pointer; display: flex;
+            justify-content: center; align-items: center; font-size: 15px;
+            padding: 0 12px; font-family: inherit; font-weight: 500;
+            color: var(--md-sys-color-on-surface); transition: background-color 0.2s;
+        }
+        .icon-btn.circle { width: 38px; padding: 0; border-radius: 50%; }
+        .icon-btn:hover { background-color: #e8eaed; }
+
+        #installBtn {
+            display: none; 
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-primary);
+        }
+
+        .controls-wrapper { display: flex; flex-direction: column; gap: 8px; }
+
+        .mode-selector {
+            display: flex; width: 100%; background-color: #f1f3f4;
+            padding: 4px; border-radius: 12px; gap: 4px;
+        }
+        .mode-btn { flex: 1; border: none; border-radius: 9px; padding: 10px; }
+
+        h1 { color: var(--md-sys-color-on-surface); font-size: clamp(18px, 4vw, 24px); font-weight: 500; }
+
+        .card {
+            background-color: #f8f9fa; border: 1px solid var(--md-sys-color-outline);
+            border-radius: 24px; min-height: clamp(150px, 35vh, 220px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            width: 100%; position: relative; padding: 20px;
+        }
+
+        .edit-btn {
+            position: absolute; top: 12px; right: 12px; background-color: transparent;
+            border: none; font-size: 20px; cursor: pointer; color: var(--md-sys-color-outline);
+            transition: color 0.2s; padding: 8px; border-radius: 50%;
+        }
+        .edit-btn:hover { color: var(--md-sys-color-primary); background-color: var(--md-sys-color-primary-container); }
+
+        .letter-display {
+            font-family: 'Noto Sans Arabic', sans-serif;
+            font-size: clamp(2.5rem, 10vw, 4.8rem);
+            color: var(--md-sys-color-primary);
+            line-height: 1.2; user-select: none; direction: rtl;
+            transition: font-family 0.3s ease; word-break: break-word;
+        }
+
+        .translation-display {
+            font-family: 'Roboto', 'Tajawal', sans-serif; font-size: 1.1rem;
+            color: #7f8c8d; margin-top: 10px; font-weight: 500; min-height: 24px;
+        }
+
+        .position-label { color: var(--md-sys-color-on-surface-variant); font-size: clamp(13px, 3.5vw, 16px); font-weight: 500; }
+
+        .buttons-group { display: flex; gap: 12px; width: 100%; }
+
+        button.action-btn {
+            font-family: inherit; font-size: clamp(14px, 3.5vw, 16px); font-weight: 500;
+            padding: 14px 24px; border: none; border-radius: 100px; cursor: pointer;
+            flex: 1; display: inline-flex; justify-content: center; align-items: center;
+            gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        button.action-btn:active { transform: scale(0.97); }
+
+        .btn-listen { background-color: var(--md-sys-color-secondary); color: white; }
+        .btn-listen:hover { background-color: #2d9247; }
+        .btn-next { background-color: var(--md-sys-color-primary); color: white; }
+        .btn-next:hover { background-color: #1557b0; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.32); backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center; z-index: 1000; padding: 12px;
+        }
+
+        .modal-card {
+            background-color: var(--md-sys-color-surface); padding: 24px; border-radius: 28px;
+            max-width: 420px; width: 100%; box-shadow: 0 24px 38px rgba(0,0,0,0.14);
+            display: flex; flex-direction: column; gap: 16px; text-align: start;
+        }
+
+        .modal-title { font-size: 18px; font-weight: 500; color: var(--md-sys-color-on-surface); padding-bottom: 8px; border-bottom: 1px solid var(--md-sys-color-outline); }
+        .modal-body { font-size: 14px; color: var(--md-sys-color-on-surface-variant); line-height: 1.5; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 70vh; }
+
+        .custom-input {
+            width: 100%; padding: 12px 16px; font-size: 24px; font-family: 'Noto Sans Arabic', sans-serif;
+            border: 2px solid var(--md-sys-color-outline); border-radius: 12px; direction: rtl;
+            text-align: center; color: var(--md-sys-color-primary); outline: none; transition: border-color 0.2s;
+        }
+        .custom-input:focus { border-color: var(--md-sys-color-primary); }
+
+        .warning-box { background-color: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); padding: 10px; border-radius: 12px; font-weight: 500; border-inline-start: 4px solid var(--md-sys-color-on-error-container); }
+        .info-box { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 14px; border-radius: 12px; font-weight: 500; display: flex; flex-direction: column; gap: 8px;}
+
+        .harakat-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .harakat-table th, .harakat-table td { padding: 6px 4px; border-bottom: 1px solid var(--md-sys-color-outline); text-align: start; }
+        .harakat-table td.symbol { font-family: 'Noto Sans Arabic', sans-serif; font-size: 20px; color: var(--md-sys-color-primary); font-weight: bold; width: 60px; }
+        .harakat-table td.symbol.madd-symbol { font-family: 'Tajawal', sans-serif; font-size: 14px; letter-spacing: 2px; }
+
+        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+        .btn-text { background-color: transparent; color: var(--md-sys-color-on-surface-variant); font-weight: 500; border: none; padding: 8px 16px; cursor: pointer; border-radius: 100px; }
+        .btn-text:hover { background-color: #f1f3f4; }
+        .btn-primary { background-color: var(--md-sys-color-primary); color: white; font-weight: 500; border: none; padding: 8px 16px; cursor: pointer; border-radius: 100px; }
+        .btn-primary:hover { background-color: #1557b0; }
+
+        @media (max-width: 360px) { .buttons-group { flex-direction: column; } .top-bar { flex-direction: column-reverse; align-items: flex-end; gap: 8px; } .lang-switcher { width: 100%; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="top-bar">
+            <div class="lang-switcher">
+                <button class="lang-btn active" onclick="changeLanguage('fr')" id="btn-fr">Français</button>
+                <button class="lang-btn" onclick="changeLanguage('ar')" id="btn-ar">العربية</button>
+                <button class="lang-btn" onclick="changeLanguage('en')" id="btn-en">English</button>
+            </div>
+            <div class="right-actions">
+                <button class="icon-btn" id="installBtn">📲 Installer</button>
+                <button class="icon-btn circle" onclick="openHelp()" id="helpBtn">ℹ️</button>
+            </div>
+        </div>
+
+        <h1 id="appTitle">Défi de prononciation</h1>
+
+        <div class="controls-wrapper">
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="setMode(1)" id="mode1Btn">1 Lettre</button>
+                <button class="mode-btn" onclick="setMode(2)" id="mode2Btn">2 Lettres</button>
+                <button class="mode-btn" onclick="setMode(3)" id="mode3Btn">Mot</button>
+            </div>
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="setFontMode('standard')" id="fontStandardBtn">Style Standard</button>
+                <button class="mode-btn" onclick="setFontMode('mushaf')" id="fontMushafBtn">Style Coranique</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <button class="edit-btn" onclick="openCustomWordModal()" title="Écrire un mot">✏️</button>
+            <div class="letter-display" id="letterDisplay"></div>
+            <div class="translation-display" id="wordTranslation"></div>
+        </div>
+        
+        <div class="position-label" id="positionLabel"></div>
+        
+        <div class="buttons-group">
+            <button class="action-btn btn-listen" onclick="playAudio()" id="btnListen">🔊 Écouter</button>
+            <button class="action-btn btn-next" onclick="generateRandom()" id="btnNext">Suivant 🔄</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="helpModal" onclick="closeModalOnOutsideClick(event, 'helpModal')">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-title" id="modalTitle">Guide d'utilisation</div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-actions"><button class="btn-primary" onclick="closeModal('helpModal')" id="btnClose">Fermer</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="customWordModal" onclick="closeModalOnOutsideClick(event, 'customWordModal')">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-title" id="customModalTitle">Écrire un mot</div>
+            <div class="modal-body">
+                <input type="text" id="customWordInput" class="custom-input" placeholder="...">
+                <p id="customWordHint" style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); text-align: center;"></p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-text" onclick="closeModal('customWordModal')" id="btnCancel">Annuler</button>
+                <button class="btn-primary" onclick="applyCustomWord()" id="btnApply">Appliquer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal spécifique d'installation pour iOS -->
+    <div class="modal-overlay" id="iosModal" onclick="closeModalOnOutsideClick(event, 'iosModal')">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-title" id="iosModalTitle">Installer sur iOS</div>
+            <div class="modal-body">
+                <div class="info-box">
+                    <p id="iosStep1">1. Appuyez sur l'icône de partage 📤 au bas de l'écran.</p>
+                    <p id="iosStep2">2. Faites défiler et appuyez sur <strong>Sur l'écran d'accueil</strong> ➕.</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="closeModal('iosModal')" id="btnIosClose">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setupPWA() {
+            // 1. Génération dynamique du Manifest
+            const manifest = {
+                "name": "Apprendre l'Arabe", "short_name": "ArabeApp",
+                "start_url": ".", "display": "standalone",
+                "background_color": "#f7f9fc", "theme_color": "#1a73e8",
+                "icons": [
+                    { "src": "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>", "sizes": "192x192", "type": "image/svg+xml" },
+                    { "src": "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>", "sizes": "512x512", "type": "image/svg+xml" }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+            document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+            // 2. Génération du Service Worker
+            const swCode = `self.addEventListener('install', (e) => self.skipWaiting()); self.addEventListener('fetch', (e) => {});`;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW error', err));
+            }
+
+            // 3. Logique d'installation (Détection iOS vs Android/PC)
+            const installBtn = document.getElementById('installBtn');
+            
+            // Détection plus robuste d'iOS (incluant les iPads récents)
+            const isIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
+            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+            if (isIOS && !isStandalone) {
+                // Si on est sur iOS et non installé, on affiche le bouton et on ouvre le popup dédié
+                installBtn.style.display = 'block';
+                installBtn.addEventListener('click', () => {
+                    document.getElementById('iosModal').style.display = 'flex';
+                });
+            } else {
+                // Comportement standard pour Android/PC
+                let deferredPrompt;
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    installBtn.style.display = 'block';
+                });
+
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') installBtn.style.display = 'none';
+                        deferredPrompt = null;
+                    }
+                });
+            }
+        }
+        setupPWA();
+
+        const translations = {
+            fr: {
+                title: "Défi de prononciation", listen: "🔊 Écouter", next: "Suivant 🔄",
+                mode_1: "1 Lettre", mode_2: "2 Lettres", mode_3: "Mot",
+                font_standard: "Dessin Standard", font_mushaf: "Dessin du Mushaf",
+                pos_initial: "Au début", pos_medial: "Au milieu", pos_final: "À la fin", pos_isolated: "Isolée",
+                pos_word: "Mot complet", pos_custom: "Mot personnalisé", dir: "ltr",
+                help_title: "Guide d'utilisation", help_close: "Fermer",
+                btn_cancel: "Annuler", btn_apply: "Appliquer", install: "📲 Installer",
+                
+                custom_title_1: "Écrire une lettre", custom_hint_1: "(Une seule lettre autorisée. Ajoutez la voyelle)", err_len_1: "Veuillez entrer une seule lettre !",
+                custom_title_2: "Écrire deux lettres", custom_hint_2: "(Deux lettres maximum autorisées)", err_len_2: "Veuillez entrer 2 lettres maximum !",
+                custom_title_3: "Écrire un mot", custom_hint_3: "(Ajoutez les voyelles pour une meilleure précision)", 
+                
+                ios_title: "Installer sur iOS", 
+                ios_step1: "1. Appuyez sur l'icône de partage 📤 au bas de l'écran.", 
+                ios_step2: "2. Faites défiler et appuyez sur <strong>Sur l'écran d'accueil</strong> ➕.",
+                
+                help_how: "<strong>Comment ça marche :</strong> Une lettre ou un mot s'affiche. Essayez de le prononcer, puis cliquez sur 'Écouter'.",
+                help_warn: "La prononciation automatique peut contenir des erreurs.",
+                help_table_head: "Nom du signe",
+                harakat: [
+                    {symbol: "َ", name: "Fatha (a)"}, {symbol: "ِ", name: "Kasra (i)"}, {symbol: "ُ", name: "Damma (ou)"},
+                    {symbol: "ْ", name: "Sukoon (Arrêt)"}, {symbol: "َّ ِّ ُّ", name: "Shaddah (Lettre doublée)"},
+                    {symbol: "ً ٍ ٌ", name: "Tanween (an, in, oun)"}, {symbol: "ا / و / ي", name: "Madd (Voyelles longues)", isMadd: true}
+                ]
+            },
+            en: {
+                title: "Pronunciation Challenge", listen: "🔊 Listen", next: "Next 🔄",
+                mode_1: "1 Letter", mode_2: "2 Letters", mode_3: "Word",
+                font_standard: "Standard Script", font_mushaf: "Mushaf Script",
+                pos_initial: "Beginning", pos_medial: "Middle", pos_final: "End", pos_isolated: "Isolated",
+                pos_word: "Complete Word", pos_custom: "Custom Word", dir: "ltr",
+                help_title: "User Guide", help_close: "Close",
+                btn_cancel: "Cancel", btn_apply: "Apply", install: "📲 Install",
+                
+                custom_title_1: "Write 1 Letter", custom_hint_1: "(Only 1 letter allowed. Add a diacritic)", err_len_1: "Please enter only one letter!",
+                custom_title_2: "Write 2 Letters", custom_hint_2: "(Max 2 letters allowed)", err_len_2: "Please enter a maximum of 2 letters!",
+                custom_title_3: "Write a Word", custom_hint_3: "(Please add diacritics for accuracy)", 
+                
+                ios_title: "Install on iOS", 
+                ios_step1: "1. Tap the Share icon 📤 at the bottom of the screen.", 
+                ios_step2: "2. Scroll down and tap <strong>Add to Home Screen</strong> ➕.",
+                
+                help_how: "<strong>How it works:</strong> A letter or word appears. Try to pronounce it, then click 'Listen'.",
+                help_warn: "Automated pronunciation may contain errors.",
+                help_table_head: "Sign Name",
+                harakat: [
+                    {symbol: "َ", name: "Fatha (a)"}, {symbol: "ِ", name: "Kasra (i)"}, {symbol: "ُ", name: "Damma (u)"},
+                    {symbol: "ْ", name: "Sukoon (Silence)"}, {symbol: "َّ ِّ ُّ", name: "Shaddah (Doubled)"},
+                    {symbol: "ً ٍ ٌ", name: "Tanween (an, in, un)"}, {symbol: "ا / و / ي", name: "Madd (Long vowels)", isMadd: true}
+                ]
+            },
+            ar: {
+                title: "تحدي نطق الحروف", listen: "🔊 استمع للنطق", next: "التالي 🔄",
+                mode_1: "حرف واحد", mode_2: "حرفان", mode_3: "كلمة",
+                font_standard: "رسم عادي", font_mushaf: "رسم المصحف",
+                pos_initial: "في أول الكلمة", pos_medial: "في وسط الكلمة", pos_final: "في آخر الكلمة", pos_isolated: "حرف منفصل",
+                pos_word: "كلمة كاملة", pos_custom: "مخصص", dir: "rtl",
+                help_title: "دليل الاستخدام", help_close: "إغلاق",
+                btn_cancel: "إلغاء", btn_apply: "تطبيق", install: "📲 تثبيت",
+                
+                custom_title_1: "اكتب حرفاً واحداً", custom_hint_1: "(مسموح بحرف واحد فقط. يرجى وضع الحركة)", err_len_1: "الرجاء إدخال حرف واحد فقط!",
+                custom_title_2: "اكتب حرفين", custom_hint_2: "(مسموح بحرفين كحد أقصى)", err_len_2: "الرجاء إدخال حرفين كحد أقصى!",
+                custom_title_3: "اكتب كلمة", custom_hint_3: "(يفضل وضع الحركات لضمان دقة النطق)", 
+                
+                ios_title: "تثبيت على iOS", 
+                ios_step1: "١. اضغط على أيقونة المشاركة 📤 في أسفل الشاشة.", 
+                ios_step2: "٢. قم بالتمرير واختر <strong>إضافة إلى الصفحة الرئيسية</strong> ➕.",
+                
+                help_how: "<strong>طريقة العمل:</strong> يظهر أمامك حرف أو كلمة. حاول النطق بمفردك، ثم اضغط 'استمع'.",
+                help_warn: "النطق الآلي قد يحتوي على أخطاء أحياناً.",
+                help_table_head: "اسم العلامة",
+                harakat: [
+                    {symbol: "َ", name: "الفتحة"}, {symbol: "ِ", name: "الكسرة"}, {symbol: "ُ", name: "الضمة"},
+                    {symbol: "ْ", name: "السكون"}, {symbol: "َّ ِّ ُّ", name: "الشدة"},
+                    {symbol: "ً ٍ ٌ", name: "التنوين"}, {symbol: "ا / و / ي", name: "حروف المد الطويل", isMadd: true}
+                ]
+            }
+        };
+
+        const dictionaryObj = [
+            { ar: "بَابٌ", fr: "Porte", en: "Door" }, { ar: "البَابُ", fr: "La porte", en: "The door" },
+            { ar: "بَيْتٌ", fr: "Maison", en: "House" }, { ar: "البَيْتُ", fr: "La maison", en: "The house" },
+            { ar: "كَلْبٌ", fr: "Chien", en: "Dog" }, { ar: "الكَلْبُ", fr: "Le chien", en: "The dog" },
+            { ar: "قَلَمٌ", fr: "Stylo", en: "Pen" }, { ar: "القَلَمُ", fr: "Le stylo", en: "The pen" },
+            { ar: "كِتَابٌ", fr: "Livre", en: "Book" }, { ar: "الكِتَابُ", fr: "Le livre", en: "The book" },
+            { ar: "شَجَرَةٌ", fr: "Arbre", en: "Tree" }, { ar: "مَاءٌ", fr: "Eau", en: "Water" },
+            { ar: "وَلَدٌ", fr: "Garçon", en: "Boy" }, { ar: "أُمٌّ", fr: "Mère", en: "Mother" },
+            { ar: "أَبٌ", fr: "Père", en: "Father" },
+            
+            { ar: "كَتَبَ", fr: "Il a écrit", en: "He wrote" }, { ar: "قَرَأَ", fr: "Il a lu", en: "He read" },
+            { ar: "ذَهَبَ", fr: "Il est allé", en: "He went" }, { ar: "سَمِعَ", fr: "Il a entendu", en: "He heard" },
+            { ar: "عَلِمَ", fr: "Il a su", en: "He knew" }, { ar: "سَجَدَ", fr: "Il s'est prosterné", en: "He prostrated" },
+            { ar: "رَكَعَ", fr: "Il s'est incliné", en: "He bowed" }, { ar: "قَامَ", fr: "Il s'est levé", en: "He stood up" },
+            { ar: "صَلَّى", fr: "Il a prié", en: "He prayed" }, { ar: "دَعَا", fr: "Il a invoqué", en: "He supplicated" },
+            
+            { ar: "اللهُ", fr: "Allah", en: "Allah" }, { ar: "الإِسْلَامُ", fr: "L'Islam", en: "Islam" },
+            { ar: "الإِيمَانُ", fr: "La foi", en: "Faith" }, { ar: "الإِحْسَانُ", fr: "L'excellence", en: "Excellence" },
+            { ar: "صَلَاةٌ", fr: "Prière", en: "Prayer" }, { ar: "الصَّلَاةُ", fr: "La prière", en: "The prayer" },
+            { ar: "زَكَاةٌ", fr: "Zakat", en: "Zakat" }, { ar: "صَوْمٌ", fr: "Jeûne", en: "Fasting" },
+            { ar: "حَجٌّ", fr: "Pèlerinage", en: "Hajj" }, { ar: "شَهَادَةٌ", fr: "Attestation", en: "Testimony" },
+            { ar: "رَسُولٌ", fr: "Messager", en: "Messenger" }, { ar: "مَلَكٌ", fr: "Ange", en: "Angel" },
+            { ar: "المَلَائِكَةُ", fr: "Les anges", en: "The angels" }, { ar: "القَدَرُ", fr: "Le destin", en: "Destiny" },
+            { ar: "نَبِيٌّ", fr: "Prophète", en: "Prophet" }, { ar: "قُرْآنٌ", fr: "Coran", en: "Quran" },
+            
+            { ar: "وُضُوءٌ", fr: "Ablutions", en: "Wudu" }, { ar: "نِيَّةٌ", fr: "Intention", en: "Intention" },
+            { ar: "تَكْبِيرَةٌ", fr: "Takbir", en: "Takbir" }, { ar: "سُجُودٌ", fr: "Prosternation", en: "Prostration" },
+            { ar: "رُكُوعٌ", fr: "Inclinaison", en: "Bowing" }, { ar: "قِيَامٌ", fr: "Station debout", en: "Standing" },
+            { ar: "فَاتِحَةٌ", fr: "Al-Fatiha", en: "Al-Fatiha" }, { ar: "سَلَامٌ", fr: "Salutation", en: "Greeting" },
+            { ar: "قِبْلَةٌ", fr: "Qibla", en: "Qibla" }, { ar: "مَسْجِدٌ", fr: "Mosquée", en: "Mosque" },
+            { ar: "أَذَانٌ", fr: "Adhan", en: "Adhan" }, { ar: "إِقَامَةٌ", fr: "Iqama", en: "Iqama" },
+            
+            { ar: "إِخْلَاصٌ", fr: "Sincérité", en: "Sincerity" }, { ar: "يَقِينٌ", fr: "Certitude", en: "Certainty" },
+            { ar: "تَوَكُّلٌ", fr: "Confiance en Allah", en: "Trust in Allah" }, { ar: "مَحَبَّةٌ", fr: "Amour", en: "Love" },
+            { ar: "رَجَاءٌ", fr: "Espérance", en: "Hope" }, { ar: "صَبْرٌ", fr: "Patience", en: "Patience" },
+            { ar: "صِدْقٌ", fr: "Véracité", en: "Truthfulness" }, { ar: "أَمَانَةٌ", fr: "Dépôt / Loyauté", en: "Trustworthiness" },
+            { ar: "رَحْمَةٌ", fr: "Miséricorde", en: "Mercy" }, { ar: "تَقْوَى", fr: "Piété", en: "Piety" },
+            { ar: "خُشُوعٌ", fr: "Recueillement", en: "Humility" }, { ar: "شُكْرٌ", fr: "Gratitude", en: "Gratitude" },
+            
+            { ar: "الرَّحْمَنُ", fr: "Le Tout Miséricordieux", en: "The Entirely Merciful" },
+            { ar: "الرَّحِيمُ", fr: "Le Très Miséricordieux", en: "The Especially Merciful" },
+            { ar: "الخَالِقُ", fr: "Le Créateur", en: "The Creator" },
+            { ar: "العَلِيمُ", fr: "L'Omniscient", en: "The All-Knowing" },
+            { ar: "السَّمِيعُ", fr: "L'Audient", en: "The All-Hearing" },
+            { ar: "البَصِيرُ", fr: "Le Clairvoyant", en: "The All-Seeing" },
+            { ar: "المَلِكُ", fr: "Le Souverain", en: "The Sovereign" },
+            { ar: "القُدُّوسُ", fr: "L'Infiniment Saint", en: "The Holy" },
+            { ar: "السَّلَامُ", fr: "La Paix", en: "The Source of Peace" },
+            { ar: "المُؤْمِنُ", fr: "Le Fidèle", en: "The Granter of Security" }
+        ];
+
+        let currentLang = 'fr'; 
+        let currentPositionKey = ''; 
+        let currentMode = 1; 
+        let currentFontMode = 'standard';
+        let currentWordObj = null; 
+
+        const letters = ['أ', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
+        const nonConnecting = ['أ', 'د', 'ذ', 'ر', 'ز', 'و'];
+        const harakatStandard = ['\u064E', '\u0650', '\u064F']; 
+        const harakatTanween = ['\u064B', '\u064D', '\u064C']; 
+        const sukoon = '\u0652';
+        const shaddahVariants = ['\u0651\u064E', '\u0651\u0650', '\u0651\u064F']; 
+        const maddMapping = { '\u064E': 'ا', '\u064F': 'و', '\u0650': 'ي' };
+        const ZWJ = '\u200D';
+        
+        let currentAudioClean = "";
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+
+            document.documentElement.dir = t.dir;
+            document.documentElement.lang = lang;
+
+            document.getElementById('appTitle').innerText = t.title;
+            document.getElementById('btnListen').innerText = t.listen;
+            document.getElementById('btnNext').innerText = t.next;
+            document.getElementById('mode1Btn').innerText = t.mode_1;
+            document.getElementById('mode2Btn').innerText = t.mode_2;
+            document.getElementById('mode3Btn').innerText = t.mode_3;
+            document.getElementById('fontStandardBtn').innerText = t.font_standard;
+            document.getElementById('fontMushafBtn').innerText = t.font_mushaf;
+            
+            document.getElementById('btnCancel').innerText = t.btn_cancel;
+            document.getElementById('btnApply').innerText = t.btn_apply;
+            document.getElementById('installBtn').innerText = "📲 " + t.install;
+            
+            // Textes spécifiques à iOS
+            document.getElementById('iosModalTitle').innerText = t.ios_title;
+            document.getElementById('iosStep1').innerHTML = t.ios_step1;
+            document.getElementById('iosStep2').innerHTML = t.ios_step2;
+            document.getElementById('btnIosClose').innerText = t.help_close;
+            
+            if(currentPositionKey) {
+                document.getElementById('positionLabel').innerText = t[currentPositionKey];
+            }
+            
+            if(currentMode === 3 && currentWordObj && currentWordObj[lang]) {
+                document.getElementById('wordTranslation').innerText = currentWordObj[lang];
+            }
+
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + lang).classList.add('active');
+            
+            if (document.getElementById('helpModal').style.display === 'flex') buildHelpContent();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                if(btn.id.startsWith('mode')) btn.classList.remove('active');
+            });
+            document.getElementById(`mode${mode}Btn`).classList.add('active');
+            generateRandom();
+        }
+
+        function setFontMode(fontType) {
+            currentFontMode = fontType;
+            document.getElementById('fontStandardBtn').classList.remove('active');
+            document.getElementById('fontMushafBtn').classList.remove('active');
+            
+            const displayEl = document.getElementById('letterDisplay');
+            if (fontType === 'mushaf') {
+                document.getElementById('fontMushafBtn').classList.add('active');
+                displayEl.style.fontFamily = "'Amiri Quran', 'Amiri', serif";
+            } else {
+                document.getElementById('fontStandardBtn').classList.add('active');
+                displayEl.style.fontFamily = "'Noto Sans Arabic', sans-serif";
+            }
+        }
+
+        function generateRandom() {
+            currentWordObj = null; 
+            
+            if (currentMode === 1) {
+                const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+                let possiblePositions = ['isolated', 'final'];
+                if (!nonConnecting.includes(randomLetter)) possiblePositions.push('initial', 'medial');
+                const position = possiblePositions[Math.floor(Math.random() * possiblePositions.length)];
+
+                let possibleHarakat = [...harakatStandard];
+                if (position === 'isolated' || position === 'final') possibleHarakat = possibleHarakat.concat(harakatTanween);
+                const randomHarakah = possibleHarakat[Math.floor(Math.random() * possibleHarakat.length)];
+
+                let coreText = randomLetter + randomHarakah;
+                buildDisplay(coreText, position, coreText, "");
+                
+            } else if (currentMode === 2) {
+                let l1 = letters[Math.floor(Math.random() * letters.length)];
+                let h1 = harakatStandard[Math.floor(Math.random() * harakatStandard.length)];
+                let l2 = "", h2 = "";
+                let isMadd = false; 
+
+                if (Math.floor(Math.random() * 2) === 1) {
+                    l2 = maddMapping[h1]; h2 = ""; isMadd = true;
+                } else {
+                    l2 = letters[Math.floor(Math.random() * letters.length)];
+                    let h2Choice = Math.floor(Math.random() * 3);
+                    if (h2Choice === 0) h2 = harakatStandard[Math.floor(Math.random() * harakatStandard.length)]; 
+                    else if (h2Choice === 1) h2 = sukoon; 
+                    else h2 = shaddahVariants[Math.floor(Math.random() * shaddahVariants.length)]; 
+                }
+
+                let possiblePositions = ['isolated', 'final'];
+                if (!nonConnecting.includes(l2)) possiblePositions.push('initial', 'medial');
+                const position = possiblePositions[Math.floor(Math.random() * possiblePositions.length)];
+
+                let coreCombo = l1 + h1 + l2 + h2; 
+                let audioCombo = isMadd ? (l1 + h1 + l2 + l2 + l2) : coreCombo;        
+                buildDisplay(coreCombo, position, audioCombo, "");
+                
+            } else {
+                currentWordObj = dictionaryObj[Math.floor(Math.random() * dictionaryObj.length)];
+                buildDisplay(currentWordObj.ar, 'word', currentWordObj.ar, currentWordObj[currentLang]);
+            }
+        }
+
+        function buildDisplay(coreText, positionType, audioText, translationText = "") {
+            let displayString = coreText;
+            if (positionType === 'initial') { displayString = coreText + ZWJ; currentPositionKey = "pos_initial"; }
+            else if (positionType === 'medial') { displayString = ZWJ + coreText + ZWJ; currentPositionKey = "pos_medial"; }
+            else if (positionType === 'final') { displayString = ZWJ + coreText; currentPositionKey = "pos_final"; }
+            else if (positionType === 'isolated') { currentPositionKey = "pos_isolated"; }
+            else if (positionType === 'word') { currentPositionKey = "pos_word"; }
+            else if (positionType === 'custom') { currentPositionKey = "pos_custom"; }
+
+            document.getElementById('letterDisplay').innerText = displayString;
+            document.getElementById('positionLabel').innerText = translations[currentLang][currentPositionKey];
+            document.getElementById('wordTranslation').innerText = translationText;
+            currentAudioClean = audioText; 
+        }
+
+        function playAudio() {
+            if (!currentAudioClean) return;
+            const googleTtsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${encodeURIComponent(currentAudioClean)}`;
+            const audio = new Audio(googleTtsUrl);
+            audio.play().catch(e => console.error("Erreur audio:", e));
+        }
+
+        function buildHelpContent() {
+            const t = translations[currentLang];
+            document.getElementById('modalTitle').innerText = t.help_title;
+            document.getElementById('btnClose').innerText = t.help_close;
+            
+            let tableRows = "";
+            t.harakat.forEach(h => {
+                const extraClass = h.isMadd ? " madd-symbol" : "";
+                tableRows += `<tr><td class="symbol${extraClass}">${h.symbol}</td><td>${h.name}</td></tr>`;
+            });
+            document.getElementById('modalBody').innerHTML = `
+                <div>${t.help_how}</div>
+                <div class="warning-box">⚠️ ${t.help_warn}</div>
+                <table class="harakat-table"><thead><tr><th>#</th><th>${t.help_table_head}</th></tr></thead><tbody>${tableRows}</tbody></table>
+            `;
+        }
+
+        function openHelp() {
+            buildHelpContent();
+            document.getElementById('helpModal').style.display = 'flex';
+        }
+
+        function openCustomWordModal() {
+            const t = translations[currentLang];
+            let title = t.custom_title_3;
+            let hint = t.custom_hint_3;
+            
+            if(currentMode === 1) {
+                title = t.custom_title_1;
+                hint = t.custom_hint_1;
+            } else if (currentMode === 2) {
+                title = t.custom_title_2;
+                hint = t.custom_hint_2;
+            }
+
+            document.getElementById('customModalTitle').innerText = title;
+            document.getElementById('customWordHint').innerText = hint;
+            document.getElementById('customWordInput').value = '';
+            document.getElementById('customWordModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('customWordInput').focus(), 100);
+        }
+
+        function applyCustomWord() {
+            const inputVal = document.getElementById('customWordInput').value.trim();
+            if(!inputVal) return;
+            
+            const t = translations[currentLang];
+            const baseLetters = inputVal.replace(/[\u064B-\u0652\u0651\u0640]/g, '');
+            
+            if (currentMode === 1 && baseLetters.length > 1) {
+                alert(t.err_len_1);
+                return;
+            }
+            if (currentMode === 2 && baseLetters.length > 2) {
+                alert(t.err_len_2);
+                return;
+            }
+
+            currentWordObj = null; 
+            buildDisplay(inputVal, 'custom', inputVal, "");
+            closeModal('customWordModal');
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+        function closeModalOnOutsideClick(event, modalId) {
+            if (event.target === document.getElementById(modalId)) closeModal(modalId);
+        }
+
+        window.onload = () => {
+            changeLanguage('fr');
+            generateRandom();
+            setFontMode('standard'); 
+            
+            document.getElementById('customWordInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') applyCustomWord();
+            });
+        };
+    </script>
+</body>
+</html>
+
+
