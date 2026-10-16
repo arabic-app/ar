@@ -18,11 +18,17 @@ Depuis ce dossier, lancer `npm start`, puis ouvrir http://127.0.0.1:8765. Un hé
 
 ## Audio et contenu pédagogique
 
-L’audio utilise la synthèse vocale du navigateur et une voix arabe disponible sur l’appareil. Aucune répétition de lettres n’est ajoutée au texte pour simuler les voyelles longues. La lecture lente est un réglage de vitesse, pas une garantie de durée phonétique. L’app signale les erreurs et l’absence de voix arabe.
+L’app retrouve le moteur Google Translate TTS de sa version initiale. Le texte est envoyé au service uniquement lors d’un clic sur Écouter. Une connexion est nécessaire pour un son inédit ; les sons déjà chargés sont mis en cache (128 fichiers maximum). La voix dépend du service Google et non des voix installées sur l’appareil.
 
-Une voix installée localement peut fonctionner hors ligne ; les voix distantes nécessitent une connexion. La disponibilité et la prononciation dépendent du système. Aucun enregistrement humain validé n’est fourni. Lettres isolées, fragments, shadda et terminaisons peuvent être mal lus. Les contenus et leurs modèles audio nécessitent une validation par un enseignant avant usage comme référence pédagogique. « Amiri Quran » change la police, sans conversion en rasm ʿuthmānī ni enseignement du tajwīd.
+Les assemblages de deux lettres sont transmis en une seule requête et joués dans un seul fichier, avec leurs voyelles, sans séparation ni pause ajoutée : `تُبِ` reste `تُبِ`.
 
-Les mots vocalisés et les terminaisons sont présentés pour la lecture liée ; la lecture à la pause peut différer. Les assemblages et fragments ne sont pas tous des mots.
+Le traitement historique des voyelles longues est rétabli dans le texte destiné au moteur uniquement : la carte `بَا` reste affichée ainsi, tandis que le moteur reçoit `بَااا`. Il s’agit d’une adaptation empirique à cette voix, pas d’une règle d’orthographe ni d’une garantie de durée phonétique. La vitesse normale est 1× ; 0,75× reste disponible à la demande.
+
+Pour les lettres isolées avec tanwīn, le son final est explicité : `تٍ` utilise `تِنْ`, `تٌ` utilise `تُنْ`, `تً` utilise `تَنْ`. Le nom lām utilise `لَامْ`. Ces adaptations ne modifient pas l’affichage de la carte. Aucune reconnaissance du microphone ni validation automatique de la prononciation n’est réalisée.
+
+La pratique libre retrouve les tirages aléatoires de lettres vocalisées et de leurs formes, les assemblages et les mots, sans limite de séance ni autoévaluation imposée. Elle ne modifie pas la progression du parcours guidé. Les 200 derniers tirages de la visite sont accessibles avec Précédent ; le numéro total du tirage continue d’augmenter.
+
+Les contenus synthétiques nécessitent une validation à l’écoute par un enseignant. « Amiri Quran » change la police, sans conversion en rasm ʿuthmānī ni enseignement du tajwīd. La lecture à la pause des terminaisons peut différer de la lecture liée. Les assemblages ne sont pas tous des mots.
 
 ## Structure
 
@@ -31,6 +37,8 @@ Les mots vocalisés et les terminaisons sont présentés pour la lecture liée ;
 - `learning.mjs` : contenu, validation, sessions et progression.
 - `i18n.mjs` : textes et aides dans les trois langues.
 - `app.mjs` : affichage, interactions, audio et sauvegarde.
+- `audio.mjs` : préparation des requêtes Google et adaptations phonétiques des fragments.
+- `free.mjs` : générateur aléatoire et formes positionnelles de la pratique libre.
 - `sw.js` : cache de l’application ; incrémenter le nom du cache lors des versions publiées.
 - `manifest.webmanifest` et icônes : installation.
 

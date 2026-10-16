@@ -1,5 +1,7 @@
 import {LESSONS,CARDS,CARD_MAP,restoreState,createSession,rateCard,validateInput} from './learning.mjs';
 import {TEXT,tipFor} from './i18n.mjs';
+import {getAudioPlan} from './audio.mjs';
+import {generateFreeCard,freeDisplay} from './free.mjs';
 const $=id=>document.getElementById(id);
 const icon=name=>`<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const STORAGE='nour.learning.v2';
@@ -11,10 +13,21 @@ if(!state.session)state.session=createSession('guided','alphabet',state);
 let custom=null,showHint=false,audioToken=0,audioTimer=null,currentUtterance=null,installPrompt=null,offlineReady=false;
 const t=key=>TEXT[state.prefs.lang][key]||key;
 const lesson=()=>LESSONS.find(l=>l.id===state.session?.lessonId)||LESSONS[0];
-const currentCard=()=>custom||CARD_MAP.get(state.session?.ids[state.session.index]);
+const freeHistory=[];let freeIndex=-1,freeOffset=0;
+function nextFreeCard(){
+ if(freeIndex<freeHistory.length-1){freeIndex++;return;}
+ const words=CARDS.filter(c=>c.lesson==='words'&&c.track===state.prefs.track);
+ let card=generateFreeCard(state.prefs.freeMode,words);
+ for(let i=0;i<4&&card.ar===freeHistory.at(-1)?.ar;i++)card=generateFreeCard(state.prefs.freeMode,words);
+ freeHistory.push(card);freeIndex++;
+ // Free history is local to this visit and does not change guided progress.
+ if(freeHistory.length>200){freeHistory.shift();freeIndex--;freeOffset++;}
+}
+if(state.session.kind==='free')nextFreeCard();
+const currentCard=()=>custom||(state.session.kind==='free'?freeHistory[freeIndex]:CARD_MAP.get(state.session?.ids[state.session.index]));
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify(state));}catch{if(!storageFailed){storageFailed=true;notify(t('savedError'));}}}
 function notify(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('toast').hidden=true,6500);}
-function stopAudio(){audioToken++;clearTimeout(audioTimer);if('speechSynthesis'in window)window.speechSynthesis.cancel();currentUtterance=null;$('listenButton').classList.remove('playing');$('audioStatus').textContent='';$('audioStatus').classList.remove('error');$('listenButton').disabled=false;}
+function stopAudio(){audioToken++;clearTimeout(audioTimer);const sample=$('sampleAudio');sample.onended=null;sample.onerror=null;sample.onplaying=null;sample.pause();sample.removeAttribute('src');sample.load();if('speechSynthesis'in window)window.speechSynthesis.cancel();currentUtterance=null;$('listenButton').classList.remove('playing');$('audioStatus').textContent='';$('audioStatus').classList.remove('error');$('listenButton').disabled=false;}
 function connection(){$('connectionStatus').textContent=!navigator.onLine?t('offline'):offlineReady?t('offlineReady'):'';}
 function updateTranslations(){
  document.documentElement.lang=state.prefs.lang;document.documentElement.dir=state.prefs.lang==='ar'?'rtl':'ltr';
@@ -58,8 +71,8 @@ function renderNavigation(){
  $('globalProgress').style.width=`${known/CARDS.length*100}%`;
  $('progressCaption').textContent=`${known} / ${CARDS.length} ${t('allCards')}`;
  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===state.prefs.freeMode)));
- const tip=tipFor(custom?(state.prefs.freeMode==='word'?'words':state.prefs.freeMode==='assembly'?'assembly':'alphabet'):currentCard()?.lesson||lesson().id,lang);$('tipTitle').textContent=tip.title;$('tipText').textContent=tip.text;$('tipExample').textContent=tip.example;
- $('speedButton').textContent=state.prefs.slow?'0.75×':'1×';$('speedButton').setAttribute('aria-pressed',String(state.prefs.slow));
+ const tip=tipFor(custom?(state.prefs.freeMode==='word'?'words':/[ًٌٍ]/u.test(custom.ar)?'tanween':custom.ar.includes('ّ')?'shadda':custom.ar.includes('ْ')?'sukun':state.prefs.freeMode==='assembly'?'assembly':'vowels'):currentCard()?.lesson||lesson().id,lang);$('tipTitle').textContent=tip.title;$('tipText').textContent=tip.text;$('tipExample').textContent=tip.example;
+ syncSpeed();
 }
 function renderHint(card){
  $('hintButton').setAttribute('aria-expanded',String(showHint));$('hintButton').querySelector('span').textContent=t(showHint?'hideHint':'showHint');
@@ -70,27 +83,29 @@ function renderHint(card){
  else $('hintContent').textContent=t(custom?'noCustomHint':'noHint');
  if(card.target){const p=document.createElement('p');p.textContent=`${t('target')} : ${card.target} · ${t(card.position)}`;$('hintContent').append(p);}
 }
+function syncSpeed(){const plan=getAudioPlan(currentCard(),state.prefs.slow);$('speedButton').textContent=plan.rate+'×';$('speedButton').setAttribute('aria-pressed',String(state.prefs.slow));}
 function renderCard(card){
  $('exerciseContent').hidden=false;$('summaryContent').hidden=true;
  const session=state.session;
  $('sessionLabel').textContent=custom?t('customCard'):session.kind==='guided'?`${t('step')} ${LESSONS.indexOf(lesson())+1} · ${lesson()[state.prefs.lang]}`:t(session.kind);
- $('cardCounter').textContent=custom?'':`${t('card')} ${session.index+1} ${t('of')} ${session.ids.length}`;
- $('sessionProgress').max=session.ids.length||1;$('sessionProgress').value=session.index;$('sessionProgress').hidden=!!custom;
+ $('cardCounter').textContent=custom?'':session.kind==='free'?`${t('draw')} ${freeOffset+freeIndex+1}`:`${t('card')} ${session.index+1} ${t('of')} ${session.ids.length}`;
+ $('sessionProgress').max=session.ids.length||1;$('sessionProgress').value=session.index;$('sessionProgress').hidden=!!custom||session.kind==='free';
  $('cardCategory').textContent=custom?t('customCard'):LESSONS.find(l=>l.id===card.lesson)?.[state.prefs.lang]||t('words');
  const arabic=$('arabicText');arabic.className=`arabic${card.kind==='word'?' word':''}${state.prefs.font==='amiri'?' amiri':''}`;arabic.replaceChildren();
  if(card.target){
   const segments=typeof Intl.Segmenter==='function'?[...new Intl.Segmenter('ar',{granularity:'grapheme'}).segment(card.ar)].map(s=>s.segment):[...card.ar];
   let highlighted=false;for(const segment of segments){if(!highlighted&&segment.startsWith(card.target)){const span=document.createElement('span');span.className='target-letter';span.textContent=segment;arabic.append(span);highlighted=true;}else arabic.append(document.createTextNode(segment));}
- }else arabic.textContent=card.ar;
+ }else arabic.textContent=card.position?freeDisplay(card):card.ar;
  // Custom words use a smaller size so long user input cannot overflow the card.
  if(custom)arabic.style.fontSize=card.ar.length>14?'36px':card.ar.length>6?'54px':'';else arabic.style.fontSize='';
  $('cardContext').replaceChildren();
+ if(card.position&&!card.target&&card.position!=='word')$('cardContext').textContent=t('position_'+card.position);
  if(card.target){const target=document.createElement('span');target.lang='ar';target.textContent=card.target;const caption=document.createElement('span');caption.textContent=t(card.position);$('cardContext').append(target,caption);}
  $('cardInstruction').textContent=t(custom?'customNote':card.lesson==='alphabet'?'observe':'read');
  $('listenText').textContent=t(card.lesson==='alphabet'?'listenName':'listen');
- $('previousButton').disabled=session.index===0&&!custom;
- $('skipButton').querySelector('span').textContent=t(custom?'resume':'skipCard');
- document.querySelector('.assessment').hidden=!!custom;$('hintButton').hidden=false;
+ $('previousButton').disabled=(session.kind==='free'?freeIndex===0:session.index===0)&&!custom;
+ $('skipButton').querySelector('span').textContent=t(custom?(session.kind==='free'?'resumeFree':'resume'):session.kind==='free'?'next':'skipCard');
+ document.querySelector('.assessment').hidden=!!custom||session.kind==='free';$('hintButton').hidden=false;
  renderHint(card);
  const announcement=$('cardAnnouncement');announcement.replaceChildren(document.createTextNode($('cardCounter').textContent+' · '));
  const announcedCard=document.createElement('span');announcedCard.lang='ar';announcedCard.dir='rtl';announcedCard.textContent=card.ar;announcement.append(announcedCard);
@@ -116,9 +131,10 @@ function renderSummary(){
 }
 function render(){updateTranslations();renderNavigation();const c=currentCard();if(c)renderCard(c);else renderSummary();save();}
 function moveFocus(){ $('main').focus({preventScroll:true});if(window.innerWidth<651)$('main').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'}); }
-function start(kind,lessonId=state.session.lessonId){stopAudio();custom=null;showHint=false;state.session=createSession(kind,lessonId,state);render();moveFocus();}
+function start(kind,lessonId=state.session.lessonId){stopAudio();custom=null;showHint=false;state.session=createSession(kind,lessonId,state);if(kind==='free'){freeHistory.length=0;freeIndex=-1;freeOffset=0;nextFreeCard();}render();moveFocus();}
 function advance(rating){
  if(custom){custom=null;stopAudio();showHint=false;render();return;}
+ if(state.session.kind==='free'){stopAudio();showHint=false;nextFreeCard();render();return;}
  const card=currentCard();if(!card)return;
  if(rating)state=rateCard(state,card.id,rating);
  stopAudio();state.session.index++;showHint=false;render();
@@ -127,29 +143,26 @@ function advance(rating){
 function audioError(key='audioError'){$('audioStatus').textContent=t(key);$('audioStatus').classList.add('error');$('listenButton').classList.remove('playing');$('listenButton').disabled=false;}
 async function playAudio(){
  stopAudio();const token=audioToken;const card=currentCard();if(!card)return;
- if(!('speechSynthesis'in window)){audioError('noVoice');return;}
- $('audioStatus').textContent=t('loading');
- let voices=window.speechSynthesis.getVoices();
- if(!voices.some(v=>/^ar([_-]|$)/i.test(v.lang))){
-  await new Promise(resolve=>{let timer;const done=()=>{window.speechSynthesis.removeEventListener('voiceschanged',done);clearTimeout(timer);resolve();};window.speechSynthesis.addEventListener('voiceschanged',done);timer=setTimeout(done,1200);});
-  voices=window.speechSynthesis.getVoices();
+ const plan=getAudioPlan(card,state.prefs.slow);
+ const sample=$('sampleAudio');
+ sample.preservesPitch=true;if('webkitPreservesPitch'in sample)sample.webkitPreservesPitch=true;
+ sample.onplaying=()=>{if(token!==audioToken)return;clearTimeout(audioTimer);$('audioStatus').textContent=t('playing');$('listenButton').classList.add('playing');};
+ sample.onerror=()=>{if(token!==audioToken)return;clearTimeout(audioTimer);audioError();};
+ async function playModel(){
+  if(token!==audioToken)return;
+  $('audioStatus').textContent=t('loading');sample.src=plan.src;sample.playbackRate=plan.rate;
+  clearTimeout(audioTimer);audioTimer=setTimeout(()=>{if(token===audioToken){stopAudio();audioError();}},15000);
+  try{await sample.play();}catch{if(token===audioToken){clearTimeout(audioTimer);audioError();}}
  }
- if(token!==audioToken)return;
- const arabicVoices=voices.filter(v=>/^ar([_-]|$)/i.test(v.lang));
- if(!arabicVoices.length){audioError('noVoice');return;}
- const utterance=new SpeechSynthesisUtterance(card.audio);currentUtterance=utterance;
- utterance.voice=arabicVoices.find(v=>v.lang.toLowerCase()==='ar-sa')||arabicVoices[0];utterance.lang=utterance.voice.lang;utterance.rate=state.prefs.slow?.75:1;
- utterance.onstart=()=>{if(token!==audioToken)return;clearTimeout(audioTimer);$('audioStatus').textContent=t('playing');$('listenButton').classList.add('playing');};
- utterance.onend=()=>{if(token!==audioToken)return;clearTimeout(audioTimer);$('audioStatus').textContent=t('audioDone');$('listenButton').classList.remove('playing');currentUtterance=null;};
- utterance.onerror=event=>{if(token!==audioToken||event.error==='canceled'||event.error==='interrupted')return;clearTimeout(audioTimer);audioError();};
- audioTimer=setTimeout(()=>{if(token===audioToken){stopAudio();audioError();}},10000);
- try{window.speechSynthesis.speak(utterance);}catch{clearTimeout(audioTimer);audioError();}
+ sample.onended=()=>{if(token!==audioToken)return;clearTimeout(audioTimer);$('audioStatus').textContent=t('audioDone');$('listenButton').classList.remove('playing');};
+ await playModel();
 }
+
 $('listenButton').addEventListener('click',playAudio);
 $('knownButton').addEventListener('click',()=>advance('known'));$('reviewButton').addEventListener('click',()=>advance('review'));$('skipButton').addEventListener('click',()=>advance());
-$('previousButton').addEventListener('click',()=>{stopAudio();showHint=false;if(custom)custom=null;else state.session.index=Math.max(0,state.session.index-1);render();});
+$('previousButton').addEventListener('click',()=>{stopAudio();showHint=false;if(custom)custom=null;else if(state.session.kind==='free')freeIndex=Math.max(0,freeIndex-1);else state.session.index=Math.max(0,state.session.index-1);render();});
 $('hintButton').addEventListener('click',()=>{showHint=!showHint;renderHint(currentCard());});
-$('speedButton').addEventListener('click',()=>{stopAudio();state.prefs.slow=!state.prefs.slow;save();$('speedButton').textContent=state.prefs.slow?'0.75×':'1×';$('speedButton').setAttribute('aria-pressed',String(state.prefs.slow));});
+$('speedButton').addEventListener('click',()=>{stopAudio();state.prefs.slow=!state.prefs.slow;save();syncSpeed();});
 $('lessonList').addEventListener('click',e=>{const b=e.target.closest('[data-lesson]');if(b)start('guided',b.dataset.lesson);});
 $('lessonSelect').addEventListener('change',e=>start('guided',e.target.value));
 // Keep the current session when clicking its selected navigation item.
@@ -159,7 +172,7 @@ for(const [button,dialog] of [['settingsOpen','settingsDialog'],['helpOpen','hel
 for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',e=>{const r=dialog.getBoundingClientRect();if(e.target===dialog&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))dialog.close();});
 $('languageSelect').addEventListener('change',e=>{stopAudio();state.prefs.lang=e.target.value;render();});
 $('fontSelect').addEventListener('change',e=>{state.prefs.font=e.target.value;render();});
-$('trackSelect').addEventListener('change',e=>{stopAudio();state.prefs.track=e.target.value;if(state.session.kind!=='review'&&(state.session.lessonId==='words'||state.session.kind==='free'&&state.prefs.freeMode==='word'))state.session=createSession(state.session.kind,state.session.lessonId,state);custom=null;render();});
+$('trackSelect').addEventListener('change',e=>{stopAudio();state.prefs.track=e.target.value;if(state.session.kind!=='review'&&(state.session.lessonId==='words'||state.session.kind==='free'&&state.prefs.freeMode==='word'))state.session=createSession(state.session.kind,state.session.lessonId,state);custom=null;if(state.session.kind==='free'){freeHistory.length=0;freeIndex=-1;freeOffset=0;nextFreeCard();}render();});
 $('customOpen').addEventListener('click',()=>{
  $('customInput').value='';$('customInput').removeAttribute('aria-invalid');$('inputError').textContent='';$('inputHint').textContent=t(state.prefs.freeMode==='letter'?'inputLetter':state.prefs.freeMode==='assembly'?'inputAssembly':'inputWord');$('customDialog').showModal();$('customInput').focus();
 });

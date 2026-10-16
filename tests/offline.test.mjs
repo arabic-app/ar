@@ -42,3 +42,12 @@ test('all UI languages and lesson tips are complete',()=>{
   for(const lesson of LESSONS){assert.ok(lesson[lang]);assert.ok(lesson.description[lang]);assert.ok(tipFor(lesson.id,lang).text);}
  }
 });
+test('Google audio that has already played is cached for later offline playback',async()=>{
+ const handlers={};const entries=new Map();let requests=0;
+ const cache={match:async r=>entries.get(r.url),put:async(r,v)=>entries.set(r.url,v),keys:async()=>[...entries.keys()].map(url=>({url})),delete:async r=>entries.delete(r.url)};
+ const response={ok:true,type:'basic',body:'audio',clone(){return this;}};
+ const context={URL,self:{location:{href:'https://example.com/arabic/sw.js'},addEventListener:(n,f)=>handlers[n]=f},caches:{open:async()=>cache},fetch:async()=>{requests++;if(requests>1)throw new Error('offline');return response;}};
+ vm.runInNewContext(script,context);
+ async function play(){let p;handlers.fetch({request:{url:'https://translate.google.com/translate_tts?tl=ar&q=test',method:'GET'},respondWith:value=>p=value});return p?await p:undefined;}
+ assert.equal(await play(),response);assert.equal(await play(),response);assert.equal(requests,1);
+});

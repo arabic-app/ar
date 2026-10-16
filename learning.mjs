@@ -50,7 +50,8 @@ export function restoreState(raw) {
   clean.prefs.slow=saved.prefs?.slow===true;
   if(saved.progress && typeof saved.progress==='object') for(const [id,value] of Object.entries(saved.progress)) if(CARD_MAP.has(id)&&['known','review'].includes(value)) clean.progress[id]=value;
   const s=saved.session;
-  if(s && ['guided','free','review'].includes(s.kind) && Array.isArray(s.ids) && s.ids.length>0 && s.ids.length<=CARDS.length && new Set(s.ids).size===s.ids.length && s.ids.every(id=>CARD_MAP.has(id)) && Number.isInteger(s.index) && s.index>=0 && s.index<=s.ids.length && LESSONS.some(l=>l.id===s.lessonId)) {
+  if(s?.kind==='free')clean.session={kind:'free',lessonId:LESSONS.some(l=>l.id===s.lessonId)?s.lessonId:'alphabet',ids:[],index:0,answers:{}};
+  else if(s && ['guided','review'].includes(s.kind) && Array.isArray(s.ids) && s.ids.length>0 && s.ids.length<=CARDS.length && new Set(s.ids).size===s.ids.length && s.ids.every(id=>CARD_MAP.has(id)) && Number.isInteger(s.index) && s.index>=0 && s.index<=s.ids.length && LESSONS.some(l=>l.id===s.lessonId)) {
    clean.session={kind:s.kind,lessonId:s.lessonId,ids:s.ids,index:s.index,answers:{}};
    for(const [id,value] of Object.entries(s.answers||{})) if(s.ids.includes(id)&&['known','review'].includes(value)) clean.session.answers[id]=value;
   }
@@ -58,13 +59,12 @@ export function restoreState(raw) {
  return clean;
 }
 export function createSession(kind,lessonId='alphabet',state=restoreState(null)) {
+ if(kind==='free')return {kind,lessonId,ids:[],index:0,answers:{}};
  let cards;
  if(kind==='review') cards=CARDS.filter(c=>state.progress[c.id]==='review');
- else if(kind==='free') cards=CARDS.filter(c=>c.kind===state.prefs.freeMode && (c.lesson!=='words'||c.track===state.prefs.track));
+
  else cards=CARDS.filter(c=>c.lesson===lessonId && (lessonId!=='words'||c.track===state.prefs.track));
- if(kind==='free') {
-  cards=[...cards]; for(let i=cards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [cards[i],cards[j]]=[cards[j],cards[i]];} cards=cards.slice(0,10);
- }
+
  return {kind,lessonId,ids:cards.map(c=>c.id),index:0,answers:{}};
 }
 export function rateCard(state,id,rating) {
